@@ -27,7 +27,8 @@ body {
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
 }
 
@@ -43,7 +44,8 @@ a {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
-textarea:focus-visible {
+textarea:focus-visible,
+select:focus-visible {
   outline: 3px solid rgba(14, 118, 110, 0.22);
   outline-offset: 2px;
 }
@@ -346,7 +348,8 @@ textarea:focus-visible {
 }
 
 .field input,
-.field textarea {
+.field textarea,
+.field select {
   background: #fbfcfb;
   border: 1px solid #d5dedc;
   border-radius: 9px;
@@ -372,12 +375,14 @@ textarea:focus-visible {
 }
 
 .field input:hover,
-.field textarea:hover {
+.field textarea:hover,
+.field select:hover {
   border-color: #b7c7c4;
 }
 
 .field input:focus,
-.field textarea:focus {
+.field textarea:focus,
+.field select:focus {
   background: white;
   border-color: var(--teal);
   box-shadow: 0 0 0 3px rgba(14, 118, 110, 0.1);
