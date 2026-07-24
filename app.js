@@ -4,11 +4,39 @@ export const sections = [
     title: "Who is this record for?",
     description: "Start with the user’s core Epic identity and account details.",
     fields: [
-      { id: "1", label: "User ID", placeholder: "Enter the user ID" },
-      { id: "2", label: "User name OT", placeholder: "Enter the user name OT" },
-      { id: "45", label: "System login", placeholder: "Enter the system login" },
-      { id: "50", label: "User status", placeholder: "Enter the user status" },
-      { id: "55", label: "Login blocked", placeholder: "Enter the required value" },
+      {
+        id: "1",
+        label: "User ID",
+        placeholder: "Enter the user ID",
+        helper: "Defaults to * for a new EMP import.",
+      },
+      {
+        id: "2",
+        label: "User name OT",
+        placeholder: "Lastname, Firstname",
+      },
+      {
+        id: "50",
+        label: "User status",
+        options: [
+          ["", "Select a status"],
+          ["1", "1 — Active"],
+          ["2", "2 — Inactive"],
+        ],
+      },
+      {
+        id: "55",
+        label: "Login blocked",
+        options: [
+          ["", "No blocked reason"],
+          ["0", "0 — Other"],
+          ["10", "10 — Too many failed logins"],
+          ["20", "20 — Inactive for too many days"],
+          ["30", "30 — External reporting user"],
+          ["1001", "1001 — Provider left organization"],
+          ["1002", "1002 — Training incomplete"],
+        ],
+      },
       {
         id: "150",
         label: "Email address",
@@ -22,7 +50,7 @@ export const sections = [
     eyebrow: "02 · Templates",
     title: "Configure templates",
     description:
-      "Add the default template, linkable templates, and their access rules.",
+      "Add the default and linkable templates. Required blank companion rows are generated automatically.",
     fields: [
       {
         id: "1101",
@@ -32,34 +60,10 @@ export const sections = [
       {
         id: "1110",
         label: "Linkable templates",
-        placeholder: "Enter one or more templates",
+        placeholder: "100002\nT123400",
         type: "textarea",
-        helper: "Use the delimiter required by your import when entering multiple values.",
-      },
-      {
-        id: "1111",
-        label: "Linkable templates effective from date",
-        placeholder: "Enter the date in your required format",
-      },
-      {
-        id: "1112",
-        label: "Linkable templates effective to date",
-        placeholder: "Enter the date in your required format",
-      },
-      {
-        id: "1115",
-        label: "Linkable templates login types",
-        placeholder: "Enter the login types",
-      },
-      {
-        id: "1118",
-        label: "Linkable templates login provider blueprint",
-        placeholder: "Enter the provider blueprint",
-      },
-      {
-        id: "1119",
-        label: "Linkable templates exclusive access group",
-        placeholder: "Enter the exclusive access group",
+        helper:
+          "Enter one template per line. Items 1111, 1112, 1115, 1118, and 1119 will be added blank once per template.",
       },
     ],
   },
@@ -71,20 +75,15 @@ export const sections = [
       {
         id: "9205",
         label: "Sub-templates",
-        placeholder: "Enter the sub-templates",
+        placeholder: "T1002\nT1004",
         type: "textarea",
-        helper: "Use the delimiter required by your import when entering multiple values.",
-      },
-      {
-        id: "9207",
-        label: "Sub-template",
-        placeholder: "Enter the sub-template",
+        helper:
+          "Enter one sub-template per line. A blank item 9207 row will be added for each sub-template.",
       },
       {
         id: "17500",
-        label: "User-specific environment provider ID",
+        label: "Provider ID",
         placeholder: "Enter the provider ID",
-        helper: "This is one combined Epic item.",
       },
       {
         id: "19601",
@@ -111,7 +110,10 @@ export const sections = [
       {
         id: "19611",
         label: "Job category validation status",
-        placeholder: "Enter the validation status",
+        placeholder: "1\n2",
+        type: "textarea",
+        helper:
+          "Enter one status code per line: 1 Ready, 2 Validated, 3 Job Changes, 4 Wrong Manager, 5 Employee Leaving, or 6 HR Changes.",
       },
       {
         id: "19612",
@@ -122,9 +124,10 @@ export const sections = [
       {
         id: "19615",
         label: "Job category validation assigned jobs",
-        placeholder: "Enter the assigned jobs",
+        placeholder: "1\n1678",
         type: "textarea",
-        helper: "Use the delimiter required by your import when entering multiple jobs.",
+        helper:
+          "Enter one job per line. Multiple values are joined with Epic’s required Control-A separator.",
       },
     ],
   },
@@ -132,19 +135,69 @@ export const sections = [
 
 export const allFields = sections.flatMap((section) => section.fields);
 
+const blankTemplateCompanionIds = ["1111", "1112", "1115", "1118", "1119"];
+const defaultAnswers = { "1": "*" };
+
+function singleLine(value) {
+  return String(value ?? "").replace(/\r?\n/g, " ").trim();
+}
+
+export function splitRows(value) {
+  return String(value ?? "")
+    .split(/\r?\n/)
+    .map((row) => row.trim())
+    .filter(Boolean);
+}
+
+function itemLine(id, value = "") {
+  return `${id},${singleLine(value)}`;
+}
+
+function controlAList(value) {
+  return splitRows(value).join("\x01");
+}
+
 export function buildTextOutput(answers) {
-  return allFields
-    .map((field) => {
-      const value = (answers[field.id] ?? "").replace(/\r?\n/g, " ").trim();
-      return `${field.id}=${value}`;
-    })
-    .join("\r\n");
+  const lines = [
+    "##INI=EMP",
+    itemLine("1", singleLine(answers["1"]) || "*"),
+    itemLine("2", answers["2"]),
+    itemLine("50", answers["50"]),
+    itemLine("55", answers["55"]),
+    itemLine("150", answers["150"]),
+    itemLine("280", answers["280"]),
+    itemLine("1101", answers["1101"]),
+  ];
+
+  const templates = splitRows(answers["1110"]);
+  const templateRows = templates.length ? templates : [""];
+  lines.push(...templateRows.map((template) => itemLine("1110", template)));
+  for (const id of blankTemplateCompanionIds) {
+    lines.push(...templateRows.map(() => itemLine(id)));
+  }
+
+  const subTemplates = splitRows(answers["9205"]);
+  const subTemplateRows = subTemplates.length ? subTemplates : [""];
+  lines.push(...subTemplateRows.map((template) => itemLine("9205", template)));
+  lines.push(...subTemplateRows.map(() => itemLine("9207")));
+
+  lines.push(
+    itemLine("17500", answers["17500"]),
+    itemLine("19601", answers["19601"]),
+    itemLine("19602", answers["19602"]),
+    itemLine("19610", answers["19610"]),
+    itemLine("19611", controlAList(answers["19611"])),
+    itemLine("19612", answers["19612"]),
+    itemLine("19615", controlAList(answers["19615"])),
+  );
+
+  return lines.join("\r\n");
 }
 
 const state = {
   activeSection: 0,
   showReview: false,
-  answers: {},
+  answers: { ...defaultAnswers },
 };
 
 const arrowIcon = (left = false) => `
@@ -229,12 +282,21 @@ function updateProgressChrome() {
 
 function fieldMarkup(field) {
   const answer = state.answers[field.id] ?? "";
-  const safeAnswer = answer
+  const safeAnswer = String(answer)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
-  const input =
-    field.type === "textarea"
+  const input = field.options
+    ? `<select data-field-id="${field.id}">
+        ${field.options
+          .map(
+            ([value, label]) =>
+              `<option value="${value}" ${answer === value ? "selected" : ""}>${label}</option>`,
+          )
+          .join("")}
+      </select>`
+    : field.type === "textarea"
       ? `<textarea data-field-id="${field.id}" placeholder="${field.placeholder}" rows="3">${safeAnswer}</textarea>`
       : `<input data-field-id="${field.id}" placeholder="${field.placeholder}"
           type="${field.type ?? "text"}" value="${safeAnswer}" />`;
@@ -311,13 +373,14 @@ function reviewMarkup() {
         <p>05 · Ready to export</p>
         <h2>Review your import file</h2>
         <span>
-          Every line contains the Epic item ID, an equals sign, and your
-          response. Blank responses are kept as blank values.
+          The file begins with ##INI=EMP. Each item uses a comma separator,
+          required blank template rows are repeated automatically, and
+          multi-value job fields use the Epic Control-A separator.
         </span>
       </div>
 
       <div class="review-summary">
-        <div><strong>${allFields.length}</strong><span>Total items</span></div>
+        <div><strong>${buildTextOutput(state.answers).split("\r\n").length}</strong><span>Output rows</span></div>
         <div><strong>${completedCount()}</strong><span>Completed</span></div>
         <div><strong>${allFields.length - completedCount()}</strong><span>Blank</span></div>
       </div>
@@ -373,7 +436,11 @@ function renderReview() {
   });
 
   panel.querySelector("#download-button").addEventListener("click", () => {
-    const userId = state.answers["1"]?.trim().replace(/[^a-zA-Z0-9_-]+/g, "-");
+    const rawUserId = state.answers["1"]?.trim();
+    const userId =
+      rawUserId && rawUserId !== "*"
+        ? rawUserId.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "")
+        : "";
     const fileName = userId ? `user-${userId}-import.txt` : "user-import.txt";
     const blob = new Blob([output], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -392,7 +459,7 @@ function renderReview() {
 
   panel.querySelector("#clear-button").addEventListener("click", () => {
     if (!window.confirm("Clear every response and start again?")) return;
-    state.answers = {};
+    state.answers = { ...defaultAnswers };
     navigateToSection(0);
   });
 }
@@ -421,6 +488,6 @@ export function initializeApp() {
   updateProgressChrome();
 }
 
-if (typeof document !== "undefined") {
+if (typeof document !== "undefined" && document.querySelector("#content-panel")) {
   initializeApp();
 }
