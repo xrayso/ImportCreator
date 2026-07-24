@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Build a mapped Epic user import text file in your browser."
+    />
+    <meta name="theme-color" content="#0e766e" />
+    <title>Import Creator</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main>
+      <header class="site-header">
+        <a class="brand" href="#" id="brand-link">
+          <span class="brand-mark">IC</span>
+          <span>Import Creator</span>
+        </a>
+        <div class="privacy-note">
+          <span class="privacy-dot"></span>
+          Responses stay in this browser
+        </div>
+      </header>
+
+      <div class="progress-rail" aria-hidden="true">
+        <span id="top-progress"></span>
+      </div>
+
+      <div class="app-shell">
+        <aside class="sidebar">
+          <div class="sidebar-intro">
+            <p>Epic user import</p>
+            <h1>Build a clean import file.</h1>
+            <span>
+              Complete four short sections, then download a ready-to-use text
+              file.
+            </span>
+          </div>
+
+          <nav id="section-nav" aria-label="Questionnaire sections"></nav>
+
+          <div class="completion-card">
+            <div>
+              <strong id="completion-percent">0%</strong>
+              <span>complete</span>
+            </div>
+            <div class="completion-track">
+              <span id="completion-bar"></span>
+            </div>
+            <p id="completion-copy">0 of 23 fields completed</p>
+          </div>
+        </aside>
+
+        <section class="content-panel" id="content-panel"></section>
+      </div>
+
+      <footer>
+        <span>Import Creator</span>
+        <span>23 mapped Epic items · Plain-text export</span>
+      </footer>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
