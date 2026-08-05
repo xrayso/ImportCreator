@@ -12,8 +12,20 @@ export const sections = [
       },
       {
         id: "2",
-        label: "User name OT",
+        label: "User Name OT",
         placeholder: "Lastname, Firstname",
+      },
+      {
+        id: "23",
+        label: "Contact Comment",
+        placeholder: "Enter a comment",
+        helper: "Enter a reason for creating the new contact.",
+      },
+      {
+        id: "45",
+        label: "System Login",
+        placeholder: "Enter the system login",
+        helper: "The user’s operating system login, e.g. first three letters of the last name plus the first two of the first name.",
       },
       {
         id: "50",
@@ -26,7 +38,7 @@ export const sections = [
       },
       {
         id: "55",
-        label: "Login blocked",
+        label: "Login Blocked",
         options: [
           ["", "No blocked reason"],
           ["0", "0 — Other"],
@@ -39,11 +51,11 @@ export const sections = [
       },
       {
         id: "150",
-        label: "Email address",
+        label: "Email Address",
         placeholder: "name@example.com",
         type: "email",
       },
-      { id: "280", label: "RPT GRP One", placeholder: "Enter RPT GRP One" },
+      { id: "280", label: "Rpt Grp One", placeholder: "Enter Rpt Grp One" },
     ],
   },
   {
@@ -53,17 +65,26 @@ export const sections = [
       "Add the default and linkable templates. Required blank companion rows are generated automatically.",
     fields: [
       {
+        id: "198",
+        label: "Linked Template",
+        placeholder: "Enter the linked template",
+        helper:
+          "The active linkable template linked to this user. Usually matches the default linkable template below.",
+      },
+      {
         id: "1101",
-        label: "Default linkable template",
+        label: "Default Linkable Template",
         placeholder: "Enter the default template",
       },
       {
         id: "1110",
-        label: "Linkable templates",
-        placeholder: "100002\nT123400",
-        type: "textarea",
+        label: "Linkable Templates",
+        placeholder: "T123400",
+        type: "list",
+        join: "rows",
+        addLabel: "template",
         helper:
-          "Enter one template per line. Items 1111, 1112, 1115, 1118, and 1119 will be added blank once per template.",
+          "Each entry becomes its own 1110 row. The companion items — 1111 and 1112 (effective from/to dates), 1115 (login types), 1118, and 1119 — are added blank once per template.",
       },
     ],
   },
@@ -74,11 +95,13 @@ export const sections = [
     fields: [
       {
         id: "9205",
-        label: "Sub-templates",
-        placeholder: "T1002\nT1004",
-        type: "textarea",
+        label: "Subtemplates",
+        placeholder: "T1002",
+        type: "list",
+        join: "rows",
+        addLabel: "subtemplate",
         helper:
-          "Enter one sub-template per line. A blank item 9207 row will be added for each sub-template.",
+          "Each entry becomes its own 9205 row, with a blank 9207 row added for each.",
       },
       {
         id: "17500",
@@ -87,13 +110,13 @@ export const sections = [
       },
       {
         id: "19601",
-        label: "HR system department",
+        label: "HR System Department",
         placeholder: "Enter the department",
       },
       {
         id: "19602",
-        label: "HR system job role",
-        placeholder: "Enter the job role",
+        label: "HR System Job Code",
+        placeholder: "Enter the job code",
       },
     ],
   },
@@ -104,36 +127,51 @@ export const sections = [
     fields: [
       {
         id: "19610",
-        label: "Job category validation manager",
+        label: "Job Category Validation Manager",
         placeholder: "Enter the manager value",
       },
       {
         id: "19611",
-        label: "Job category validation status",
-        placeholder: "1\n2",
-        type: "textarea",
+        label: "Job Category Validation Status",
+        placeholder: "1",
+        type: "list",
+        join: "control-a",
+        addLabel: "job + status",
+        pairWith: "19615",
         helper:
-          "Enter one status code per line: 1 Ready, 2 Validated, 3 Job Changes, 4 Wrong Manager, 5 Employee Leaving, or 6 HR Changes.",
+          "One status per assigned job — this list adds and removes rows together with the assigned jobs below. Joined automatically with Epic’s Control-A separator. Codes: 1 Ready, 2 Validated, 3 Job Changes, 4 Wrong Manager, 5 Employee Leaving, 6 HR Changes.",
       },
       {
         id: "19612",
-        label: "Job category validation comment",
+        label: "Job Category Validation Comment",
         placeholder: "Enter a comment",
         type: "textarea",
       },
       {
         id: "19615",
-        label: "Job category validation assigned jobs",
-        placeholder: "1\n1678",
-        type: "textarea",
+        label: "Job Category Validation Assigned Jobs",
+        placeholder: "1783",
+        type: "list",
+        join: "control-a",
+        addLabel: "job + status",
+        pairWith: "19611",
         helper:
-          "Enter one job per line. Multiple values are joined with Epic’s required Control-A separator.",
+          "One job category ID per entry, joined automatically with Epic’s Control-A separator. Row 1 here pairs with row 1 of the status list above.",
       },
     ],
   },
 ];
 
 export const allFields = sections.flatMap((section) => section.fields);
+
+const fieldsById = new Map(allFields.map((field) => [field.id, field]));
+
+// Paired lists (e.g. one validation status per assigned job) gain and lose rows
+// together, so row N of one always lines up with row N of the other.
+function listGroup(id) {
+  const partner = fieldsById.get(id)?.pairWith;
+  return partner ? [id, partner] : [id];
+}
 
 const blankTemplateCompanionIds = ["1111", "1112", "1115", "1118", "1119"];
 const defaultAnswers = { "1": "*" };
@@ -157,14 +195,17 @@ function controlAList(value) {
   return splitRows(value).join("\x01");
 }
 
-export function buildTextOutput(answers) {
+export function buildLines(answers) {
   const lines = [
     "##INI=EMP",
     itemLine("1", singleLine(answers["1"]) || "*"),
     itemLine("2", answers["2"]),
+    itemLine("23", answers["23"]),
+    itemLine("45", answers["45"]),
     itemLine("50", answers["50"]),
     itemLine("55", answers["55"]),
     itemLine("150", answers["150"]),
+    itemLine("198", answers["198"]),
     itemLine("280", answers["280"]),
     itemLine("1101", answers["1101"]),
   ];
@@ -191,14 +232,58 @@ export function buildTextOutput(answers) {
     itemLine("19615", controlAList(answers["19615"])),
   );
 
-  return lines.join("\r\n");
+  return lines;
+}
+
+export function buildTextOutput(answers) {
+  return `${buildLines(answers).join("\r\n")}\r\n`;
 }
 
 const state = {
   activeSection: 0,
   showReview: false,
   answers: { ...defaultAnswers },
+  // Per-field box lists. Kept separate from answers so an empty box can stay on
+  // screen while the export continues to ignore it.
+  lists: {},
 };
+
+function getList(id) {
+  if (!state.lists[id]) {
+    const stored = splitRows(state.answers[id]);
+    state.lists[id] = stored.length ? stored : [""];
+  }
+  return state.lists[id];
+}
+
+function setList(id, values) {
+  state.lists[id] = values;
+  state.answers[id] = values
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+// Pad both halves of a paired list to the same row count.
+function alignPair(id) {
+  const group = listGroup(id);
+  if (group.length < 2) return;
+  const rows = Math.max(...group.map((target) => getList(target).length));
+  for (const target of group) {
+    const values = getList(target);
+    if (values.length < rows) {
+      setList(target, [...values, ...Array(rows - values.length).fill("")]);
+    }
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
 
 const arrowIcon = (left = false) => `
   <svg aria-hidden="true" class="${left ? "rotate-180" : ""}" fill="none"
@@ -280,36 +365,65 @@ function updateProgressChrome() {
   renderNav();
 }
 
-function fieldMarkup(field) {
-  const answer = state.answers[field.id] ?? "";
-  const safeAnswer = String(answer)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-  const input = field.options
-    ? `<select data-field-id="${field.id}">
-        ${field.options
-          .map(
-            ([value, label]) =>
-              `<option value="${value}" ${answer === value ? "selected" : ""}>${label}</option>`,
-          )
-          .join("")}
-      </select>`
-    : field.type === "textarea"
-      ? `<textarea data-field-id="${field.id}" placeholder="${field.placeholder}" rows="3">${safeAnswer}</textarea>`
-      : `<input data-field-id="${field.id}" placeholder="${field.placeholder}"
-          type="${field.type ?? "text"}" value="${safeAnswer}" />`;
+function listMarkup(field) {
+  alignPair(field.id);
+  const values = getList(field.id);
+  const showSeparator = field.join === "control-a";
+  const removeLabel = field.pairWith ? "Remove this row from both lists" : "Remove entry";
+  const rows = values
+    .map(
+      (value, index) => `
+        ${index > 0 && showSeparator ? `<span class="list-join" aria-hidden="true">␁ Control-A</span>` : ""}
+        <div class="list-row">
+          <input data-list-id="${field.id}" data-index="${index}"
+            placeholder="${escapeHtml(field.placeholder ?? "")}" type="text"
+            value="${escapeHtml(value)}" />
+          <button aria-label="${removeLabel}" class="list-remove"
+            data-list-remove="${field.id}" data-index="${index}" title="${removeLabel}"
+            type="button" ${values.length === 1 ? "disabled" : ""}>&times;</button>
+        </div>`,
+    )
+    .join("");
 
   return `
-    <label class="field ${field.type === "textarea" ? "wide" : ""}">
+    <div class="list-rows">${rows}</div>
+    <button class="list-add" data-list-add="${field.id}" type="button">
+      + Add ${field.addLabel ?? "entry"}
+    </button>`;
+}
+
+function fieldMarkup(field) {
+  const answer = state.answers[field.id] ?? "";
+  const safeAnswer = escapeHtml(answer);
+  const input = field.type === "list"
+    ? listMarkup(field)
+    : field.options
+      ? `<select data-field-id="${field.id}">
+          ${field.options
+            .map(
+              ([value, label]) =>
+                `<option value="${value}" ${answer === value ? "selected" : ""}>${label}</option>`,
+            )
+            .join("")}
+        </select>`
+      : field.type === "textarea"
+        ? `<textarea data-field-id="${field.id}" placeholder="${field.placeholder}" rows="3">${safeAnswer}</textarea>`
+        : `<input data-field-id="${field.id}" placeholder="${field.placeholder}"
+            type="${field.type ?? "text"}" value="${safeAnswer}" />`;
+
+  // A list renders several inputs plus buttons, so it cannot sit inside a label.
+  const tag = field.type === "list" ? "div" : "label";
+  const wide = field.type === "textarea" || field.type === "list";
+
+  return `
+    <${tag} class="field ${wide ? "wide" : ""}">
       <span class="field-label">
         <span>${field.label}</span>
         <small>#${field.id}</small>
       </span>
       ${input}
       ${field.helper ? `<span class="field-helper">${field.helper}</span>` : ""}
-    </label>`;
+    </${tag}>`;
 }
 
 function sectionMarkup() {
@@ -351,6 +465,43 @@ function renderSection() {
     });
   });
 
+  panel.querySelectorAll("[data-list-id]").forEach((input) => {
+    input.addEventListener("input", (event) => {
+      const id = event.target.dataset.listId;
+      const values = [...getList(id)];
+      values[Number(event.target.dataset.index)] = event.target.value;
+      setList(id, values);
+      updateProgressChrome();
+    });
+  });
+
+  panel.querySelectorAll("[data-list-add]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.listAdd;
+      for (const target of listGroup(id)) {
+        setList(target, [...getList(target), ""]);
+      }
+      renderSection();
+      updateProgressChrome();
+      document
+        .querySelector(`[data-list-id="${id}"][data-index="${getList(id).length - 1}"]`)
+        ?.focus();
+    });
+  });
+
+  panel.querySelectorAll("[data-list-remove]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const id = button.dataset.listRemove;
+      const index = Number(button.dataset.index);
+      for (const target of listGroup(id)) {
+        const remaining = getList(target).filter((_, i) => i !== index);
+        setList(target, remaining.length ? remaining : [""]);
+      }
+      renderSection();
+      updateProgressChrome();
+    });
+  });
+
   panel.querySelector("#back-button").addEventListener("click", () => {
     if (state.activeSection > 0) navigateToSection(state.activeSection - 1);
   });
@@ -380,7 +531,7 @@ function reviewMarkup() {
       </div>
 
       <div class="review-summary">
-        <div><strong>${buildTextOutput(state.answers).split("\r\n").length}</strong><span>Output rows</span></div>
+        <div><strong>${buildLines(state.answers).length}</strong><span>Output rows</span></div>
         <div><strong>${completedCount()}</strong><span>Completed</span></div>
         <div><strong>${allFields.length - completedCount()}</strong><span>Blank</span></div>
       </div>
@@ -460,6 +611,7 @@ function renderReview() {
   panel.querySelector("#clear-button").addEventListener("click", () => {
     if (!window.confirm("Clear every response and start again?")) return;
     state.answers = { ...defaultAnswers };
+    state.lists = {};
     navigateToSection(0);
   });
 }
