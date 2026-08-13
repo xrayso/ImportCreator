@@ -139,7 +139,7 @@ export const sections = [
         addLabel: "job + status",
         pairWith: "19615",
         helper:
-          "One status per assigned job — this list adds and removes rows together with the assigned jobs below. Joined automatically with Epic’s Control-A separator. Codes: 1 Ready, 2 Validated, 3 Job Changes, 4 Wrong Manager, 5 Employee Leaving, 6 HR Changes.",
+          "One status per assigned job — this list adds and removes rows together with the assigned jobs below. Each row exports as its own 19611 line with the row number, Epic’s Control-A separator, then the value (19611,1␁2 means row 1 has the value 2). Codes: 1 Ready, 2 Validated, 3 Job Changes, 4 Wrong Manager, 5 Employee Leaving, 6 HR Changes.",
       },
       {
         id: "19612",
@@ -156,7 +156,7 @@ export const sections = [
         addLabel: "job + status",
         pairWith: "19611",
         helper:
-          "One job category ID per entry, joined automatically with Epic’s Control-A separator. Row 1 here pairs with row 1 of the status list above.",
+          "One job category ID per entry. Each row exports as its own 19615 line with the row number, Epic’s Control-A separator, then the value (19615,1␁1783 means row 1 has the value 1783). Row 1 here pairs with row 1 of the status list above.",
       },
     ],
   },
@@ -191,8 +191,12 @@ function itemLine(id, value = "") {
   return `${id},${singleLine(value)}`;
 }
 
-function controlAList(value) {
-  return splitRows(value).join("\x01");
+// Related-group items export one row per entry, with the row's 1-based line
+// number and its value joined by Control-A: 19611,1␁2 is row 1 with value 2.
+function controlARows(id, value) {
+  const rows = splitRows(value);
+  if (!rows.length) return [itemLine(id)];
+  return rows.map((row, index) => itemLine(id, `${index + 1}\x01${row}`));
 }
 
 export function buildLines(answers) {
@@ -227,9 +231,9 @@ export function buildLines(answers) {
     itemLine("19601", answers["19601"]),
     itemLine("19602", answers["19602"]),
     itemLine("19610", answers["19610"]),
-    itemLine("19611", controlAList(answers["19611"])),
+    ...controlARows("19611", answers["19611"]),
     itemLine("19612", answers["19612"]),
-    itemLine("19615", controlAList(answers["19615"])),
+    ...controlARows("19615", answers["19615"]),
   );
 
   return lines;
@@ -373,8 +377,8 @@ function listMarkup(field) {
   const rows = values
     .map(
       (value, index) => `
-        ${index > 0 && showSeparator ? `<span class="list-join" aria-hidden="true">␁ Control-A</span>` : ""}
         <div class="list-row">
+          ${showSeparator ? `<span class="list-join" aria-hidden="true">${index + 1}␁</span>` : ""}
           <input data-list-id="${field.id}" data-index="${index}"
             placeholder="${escapeHtml(field.placeholder ?? "")}" type="text"
             value="${escapeHtml(value)}" />
@@ -525,8 +529,9 @@ function reviewMarkup() {
         <h2>Review your import file</h2>
         <span>
           The file begins with ##INI=EMP. Each item uses a comma separator,
-          required blank template rows are repeated automatically, and
-          multi-value job fields use the Epic Control-A separator.
+          required blank template rows are repeated automatically, and each
+          multi-value job entry exports as its own row — the row number and
+          value joined by the Epic Control-A separator.
         </span>
       </div>
 
