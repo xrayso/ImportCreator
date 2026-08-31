@@ -32,9 +32,10 @@ export const sections = [
         label: "User status",
         options: [
           ["", "Select a status"],
-          ["1", "1 — Active"],
-          ["2", "2 — Inactive"],
+          ["Active", "Active"],
+          ["Inactive", "Inactive"],
         ],
+        helper: "Exports the word — 50,Active — not the numeric code.",
       },
       {
         id: "55",
